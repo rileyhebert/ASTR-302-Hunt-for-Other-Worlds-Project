@@ -2,8 +2,8 @@ import os
 import numpy as np
 from astropy.io import fits
 
-input_path = "/home/akianvith/hunt_other_worlds/rflat2"
-output_path = "/home/akianvith/hunt_other_worlds"
+input_path = "/home/<netID>/hunt_other_worlds/rflat2"
+output_path = "/home/<netID>/hunt_other_worlds"
 
 def types(i, f):
     return [os.path.join(input_path, f"r.{n:04d}.fits") for n in range(i, f+1)]
