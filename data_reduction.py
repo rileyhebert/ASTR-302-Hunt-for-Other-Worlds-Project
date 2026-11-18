@@ -26,7 +26,14 @@ def correct_data(data_file, normed_flat):
     return corrected_image
 
 def extract_aperture_and_annulus(corrected_image,center_x,center_y):
+    #use FWHM on target star and on reference star
+    # to see if need to throw out data
+    # calculate average fwhm then throw out anything with a peak
+    # more than halfway away from average peak
+    #pick every twenty files to see rough light
+    #bad data has fatter gaussian
     aperture_radius = 7
+    #adjust aperture radius per each frame 
     r_in = 10
     r_out = 13
     aperture = CircularAperture((center_x, center_y), r=aperture_radius) 
@@ -77,3 +84,4 @@ def main():
         output_file = sys.argv[6]
         write_to_flux_file(output_file, outputs)
         
+main()
