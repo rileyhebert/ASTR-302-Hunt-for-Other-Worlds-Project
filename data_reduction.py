@@ -47,8 +47,31 @@ def find_centroid(corrected_image, x_guess, y_guess, box_size=21):
         return x, y
     return x_guess, y_guess
 
+def curve_of_growth(corrected_image,center_x,center_y):
+    extraction_r = []
+    snr_values = []
+    aperture_radius = 0.0
+    for i in range(100):
+        aperture_radius+=0.1
+        extraction_r.append(aperture_radius)
+        r_in = 10
+        r_out = 13
+        aperture = CircularAperture((center_x, center_y), r=aperture_radius) 
+        annulus = CircularAnnulus((center_x, center_y), r_in, r_out)
+        phot_table = aperture_photometry(corrected_image, aperture)
+        flux = phot_table['aperture_sum']
+        
+        bkg_stats = ApertureStats(corrected_image, annulus)
+        bkg_sigma = bkg_stats.std
+        flux_err = np.sqrt(aperture.area)*bkg_sigma
+        
+        snr = flux/flux_err
+        snr_values.append(snr)
+    max_index = snr_values.index(max(snr_values))
+    return extraction_r[max_index]
+
 def extract_aperture_and_annulus(corrected_image,center_x,center_y):
-    aperture_radius = 7
+    aperture_radius = curve_of_growth(corrected_image,center_x,center_y)
     r_in = 10
     r_out = 13
     aperture = CircularAperture((center_x, center_y), r=aperture_radius) 
