@@ -38,7 +38,7 @@ def correct_data(data_file, normed_flat):
     corrected_image = raw_image/normed_flat
     return corrected_image
 
-def find_centroid(corrected_image, x_guess, y_guess, box_size=21.0):
+def find_centroid(corrected_image, x_guess, y_guess, box_size=21):
     xs, ys = centroid_sources(corrected_image, x_guess, y_guess,
                               box_size=box_size, centroid_func=centroid_quadratic)
     x, y = float(xs[0]), float(ys[0])
@@ -53,7 +53,7 @@ def curve_of_growth(corrected_image,center_x,center_y):
     extraction_r = []
     snr_values = []
     aperture_radius = 0.0
-    for i in range(500):
+    for i in range(800):
         aperture_radius+=0.2
         extraction_r.append(aperture_radius)
         r_in = 40
@@ -69,12 +69,20 @@ def curve_of_growth(corrected_image,center_x,center_y):
         
         snr = flux/flux_err
         snr_values.append(snr)
+    '''
+    plt.plot(extraction_r, snr_values)
+    plt.xlabel("Extraction Radius")
+    plt.ylabel("SNR Value")
+    plt.title("Annulus Radius vs Signal-to-Noise Ratio")
+    plt.show()
+    '''
     max_index = snr_values.index(max(snr_values))
     return extraction_r[max_index]
 
 def mask(corrected_image,center_x,center_y):
     #center coordinates of stars to be masked 
-    corrected_image[center_x-10:center_x+10,center_y-10:center_y+10] = np.nan
+    corrected_image[int(center_x)-10:int(center_x)+10,
+                    int(center_y)-10:int(center_y)+10] = np.nan
     return corrected_image
 
 def extract_aperture_and_annulus(corrected_image,center_x,center_y):
@@ -117,6 +125,7 @@ def main():
         bias_filename = sys.argv[3]
         #returns a numpy array
         normed_flat = norm_flat(raw_flat_filename,bias_filename)
+        normed_flat = 1
         center_x_pixel = float(sys.argv[4])
         center_y_pixel = float(sys.argv[5])
         output_file = sys.argv[6]
@@ -124,6 +133,7 @@ def main():
         center_y_mask1 = 1340.63
         center_x_mask2 = 950.955
         center_y_mask2 = 1206.95
+    
         for raw_data_filename in sorted(glob.glob(os.path.join(raw_data_folder, "*.fits"))):
             corrected_data = correct_data(raw_data_filename,normed_flat)
             center_x_mask1,center_y_mask1 = find_centroid(corrected_data,
@@ -142,8 +152,7 @@ def main():
                                                             center_x_pixel, 
                                                             center_y_pixel)
             write_to_flux_file(output_file, outputs)
-
-
+        
 
 main()
 
