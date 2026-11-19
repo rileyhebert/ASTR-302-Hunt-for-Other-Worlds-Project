@@ -11,6 +11,7 @@ import numpy as np
 from astropy.io import fits  
 import glob
 from photutils.aperture import CircularAperture, CircularAnnulus, aperture_photometry, ApertureStats    
+from photutils.centroids import centroid_sources, centroid_quadratic
 import csv
 import os
 
@@ -25,15 +26,19 @@ def correct_data(data_file, normed_flat):
     corrected_image = raw_image/normed_flat
     return corrected_image
 
+def find_centroid(corrected_image, x_guess, y_guess, box_size=21):
+    xs, ys = centroid_sources(corrected_image, x_guess, y_guess,
+                              box_size=box_size, centroid_func=centroid_quadratic)
+    x, y = float(xs[0]), float(ys[0])
+    half = box_size / 2
+    # Accept the fit only if it is finite and inside the search box
+    if (np.isfinite(x) and np.isfinite(y)
+            and abs(x - x_guess) <= half and abs(y - y_guess) <= half):
+        return x, y
+    return x_guess, y_guess
+
 def extract_aperture_and_annulus(corrected_image,center_x,center_y):
-    #use FWHM on target star and on reference star
-    # to see if need to throw out data
-    # calculate average fwhm then throw out anything with a peak
-    # more than halfway away from average peak
-    #pick every twenty files to see rough light
-    #bad data has fatter gaussian
     aperture_radius = 7
-    #adjust aperture radius per each frame 
     r_in = 10
     r_out = 13
     aperture = CircularAperture((center_x, center_y), r=aperture_radius) 
@@ -48,16 +53,15 @@ def extract_aperture_and_annulus(corrected_image,center_x,center_y):
     
     snr = flux/flux_err
     
-    return [flux,flux_err,snr]
+    return [float(flux[0]), float(flux_err), float(snr[0])]
 
-def write_to_flux_file(output_file,outputs):
-    headers = ["Flux","Flux Error","SNR"]
-    with open(output_file,"a") as file:
-        writer = csv.DictWriter(file, headers)
+def write_to_flux_file(output_file, outputs):
+    headers = ["Flux", "Flux Error", "SNR"]
+    with open(output_file, "a", newline="") as file:
+        writer = csv.writer(file)
         if os.path.getsize(output_file) == 0:
-            writer.writeheader()
+            writer.writerow(headers)
         writer.writerow(outputs)
-        
     
 
 
@@ -70,18 +74,24 @@ def main():
               " <x pixel of star center> <y pixel of star center>"
               " <output file")
     else:
-        raw_data_filename = sys.argv[1]
+        raw_data_folder = sys.argv[1]
         raw_flat_filename = sys.argv[2]
         bias_filename = sys.argv[3]
         #returns a numpy array
         normed_flat = norm_flat(raw_flat_filename,bias_filename)
-        corrected_data = correct_data(raw_data_filename,normed_flat)
         center_x_pixel = float(sys.argv[4])
         center_y_pixel = float(sys.argv[5])
-        outputs = extract_aperture_and_annulus(corrected_data, 
-                                                         center_x_pixel, 
-                                                        center_y_pixel)
         output_file = sys.argv[6]
-        write_to_flux_file(output_file, outputs)
-        
+        for raw_data_filename in sorted(glob.glob(os.path.join(raw_data_folder, "*.fits"))):
+            corrected_data = correct_data(raw_data_filename,normed_flat)
+            center_x_pixel, center_y_pixel = find_centroid(corrected_data,
+                                                           center_x_pixel,
+                                                           center_y_pixel)
+            #print(os.path.basename(raw_data_filename), center_x_pixel, center_y_pixel)
+            outputs = extract_aperture_and_annulus(corrected_data, 
+                                                            center_x_pixel, 
+                                                            center_y_pixel)
+            write_to_flux_file(output_file, outputs)
+
+
 main()
