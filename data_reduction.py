@@ -4,6 +4,16 @@ Created on Fri Nov 13 10:42:28 2026
 
 @author: Riley
 """
+"""
+Run this code by typing:
+python data_reduction.py <raw-science-folder> <master-flat> <master-bias> <center-x-on-first-science-image> 
+<center-y-on-first-science-image> <name-of-output-file>
+
+For the last three inputs, use these values:
+On wasp2.0001.fits: center x = 955, center y = 1277
+name of output file: reduced_flux_file
+
+"""
 
 import sys
 #import matplotlib.pyplot as plt  
